@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Dependencies
+node_modules/
+.npm
+
+# Environment variables
+.env
+.env.local
+
+# ROS2 workspace artifacts
+**/build/
+**/install/
+**/log/
+*.egg-info/
+
+# Home directory files
+.bash*
+.cache/
+.config/
+.dotnet/
+.profile
+.ssh/
+.sudo_as_admin_successful
+.vscode-server/
+.wget-hsts
