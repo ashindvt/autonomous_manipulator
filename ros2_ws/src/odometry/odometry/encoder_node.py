@@ -10,15 +10,22 @@ from rclpy.duration import Duration # Added for time buffer math
 class OdometryNode(Node):
     def __init__(self):
         super().__init__('odometry_node')
+
+        # 1. Define the variables first
+        self.curr_left = 0
+        self.curr_right = 0
         
+        # 2. Now you can print them (use self. to refer to them)
+        self.get_logger().info(f"Ticks -> Left: {self.curr_left} | Right: {self.curr_right}")
+
         # 1. Hardware Pins
         self.enc_right = RotaryEncoder(5, 6, max_steps=0)
         self.enc_left = RotaryEncoder(22, 27, max_steps=0)
         
         # 2. T-Robot Physical Parameters
-        self.wheel_radius = 0.05       
-        self.wheel_base = 0.40         
-        self.ticks_per_rev = 1440      
+        self.wheel_radius = 0.08352       
+        self.wheel_base = 0.29        
+        self.ticks_per_rev = 356.0      
         
         # 3. ROS Publishers & Broadcasters
         self.odom_pub = self.create_publisher(Odometry, 'odom', 10)
@@ -33,8 +40,8 @@ class OdometryNode(Node):
         self.last_time = self.get_clock().now()
         
         # Timer: Update at 10Hz
-        self.timer = self.create_timer(0.5, self.update_position)
-        self.get_logger().info("Odometry Node started with 0.05s Time Buffer.")
+        self.timer = self.create_timer(0.1, self.update_position) #10 hz - much smoother
+        self.get_logger().info(f"Ticks -> Left: {self.curr_left} | Right: {self.curr_right}")
 
     def euler_to_quaternion(self, yaw):
         q = Quaternion()
@@ -55,11 +62,17 @@ class OdometryNode(Node):
         if dt <= 0:
             return
 
-        curr_left = self.enc_left.steps
-        curr_right = -self.enc_right.steps  
+        curr_left = -self.enc_left.steps
+        curr_right = self.enc_right.steps
+
+        self.get_logger().info(f"LIVE TICKS -> Left: {curr_left} | Right: {curr_right}")
         
-        dist_left = (curr_left - self.last_left_ticks) * (2 * math.pi * self.wheel_radius / self.ticks_per_rev)
-        dist_right = (curr_right - self.last_right_ticks) * (2 * math.pi * self.wheel_radius / self.ticks_per_rev)
+        # Calculate this once
+        distance_per_tick = (2 * math.pi * self.wheel_radius) / self.ticks_per_rev
+
+        # Use it for both wheels
+        dist_left = (curr_left - self.last_left_ticks) * distance_per_tick
+        dist_right = (curr_right - self.last_right_ticks) * distance_per_tick
         
         d = (dist_left + dist_right) / 2.0
         dth = (dist_right - dist_left) / self.wheel_base

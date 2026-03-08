@@ -20,10 +20,8 @@ def generate_launch_description():
                 'scan_mode': 'Standard',     # This prevents the timeout
                 "scan_frequency": 7.0,           # Adjust this value to control the rotation speed
 
-                # 🔥 critical WiFi tuning
-                'qos_overrides./scan.publisher.reliability': 'best_effort',
-                'qos_overrides./scan.publisher.history': 'keep_last',
-                'qos_overrides./scan.publisher.depth': 3,
+            
+                
             }]
         ),
 
@@ -46,18 +44,21 @@ def generate_launch_description():
         # [x, y, z, yaw, pitch, roll, parent, child]
         
         # Lidar Transform
+        # 4. STATIC TRANSFORMS (The Physics of your T-Shape)
+        
+        # Lidar Transform
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
-            name='lidar_tf',
-            arguments=['--x', '0.0', '--y', '0.0', '--z', '0.0', '--yaw', '0', '--pitch', '0', '--roll', '0', '--frame-id', 'base_link', '--child-frame-id', 'laser_frame']
+            name='lidar_static_tf',
+            arguments=['0', '0', '0', '0', '0', '0', 'base_link', 'laser_frame']
         ),
 
         # IMU Transform
         Node(
             package='tf2_ros',
             executable='static_transform_publisher',
-            name='imu_tf',
-            arguments=['--x', '0.0', '--y', '0.0', '--z', '0.00', '--yaw', '0', '--pitch', '0', '--roll', '0', '--frame-id', 'base_link', '--child-frame-id', 'imu_link']
+            name='imu_static_tf',
+            arguments=['0', '0', '0', '0', '0', '0', 'base_link', 'imu_link']
         ),
     ])
