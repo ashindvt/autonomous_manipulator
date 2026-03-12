@@ -23,7 +23,7 @@ class OdometryNode(Node):
         self.enc_left = RotaryEncoder(22, 27, max_steps=0)
         
         # 2. T-Robot Physical Parameters
-        self.wheel_radius = 0.08352       
+        self.wheel_radius = 0.07214       
         self.wheel_base = 0.29        
         self.ticks_per_rev = 356.0      
         

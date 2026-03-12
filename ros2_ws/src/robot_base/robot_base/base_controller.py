@@ -1,7 +1,6 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist, TransformStamped
-import tf2_ros
 from gpiozero import PWMOutputDevice
 
 class BaseController(Node):
@@ -15,15 +14,8 @@ class BaseController(Node):
         # --- 2. ROS Connections ---
         # Subscribes to keyboard/teleop from your PC
         self.subscription = self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
-        # Broadcasts movement so SLAM Toolbox can grow the map
-        self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
-        
-        # --- 3. Simple Tracking (Until Encoders are fully tuned) ---
-        self.x = 0.0
-        self.y = 0.0
         
         # Timer for Odom updates (20Hz)
-        self.timer = self.create_timer(0.05, self.publish_odom_tf)
         self.get_logger().info("Base Controller is online and listening to /cmd_vel")
 
     def cmd_vel_callback(self, msg):
@@ -37,19 +29,6 @@ class BaseController(Node):
         elif angular < 0: self.right()
         else: self.stop()
 
-    def publish_odom_tf(self):
-        # This is the 'Map-Grower' message!
-        t = TransformStamped()
-        t.header.stamp = self.get_clock().now().to_msg()
-        t.header.frame_id = 'odom'
-        t.child_frame_id = 'base_link'
-        
-        t.transform.translation.x = self.x
-        t.transform.translation.y = self.y
-        t.transform.rotation.w = 1.0 # Facing forward
-        
-        self.tf_broadcaster.sendTransform(t)
-
     # --- Motor Pin Logic ---
     def stop(self):
         self.m1a.value = 0; self.m1b.value = 0
@@ -58,12 +37,10 @@ class BaseController(Node):
     def forward(self):
         self.m1a.value = 0; self.m1b.value = 0.5
         self.m2a.value = 0; self.m2b.value = 0.5
-        self.x += 0.02  # Incrementing X to tell SLAM we are moving
 
     def backward(self):
         self.m1a.value = 0.5; self.m1b.value = 0
         self.m2a.value = 0.5; self.m2b.value = 0
-        self.x -= 0.02
 
     def right(self):
         self.m1a.value = 0.5; self.m1b.value = 0
