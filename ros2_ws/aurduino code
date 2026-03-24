@@ -1,0 +1,94 @@
+// --- Motor Pins ---
+const int m1PinA = 3;  // Left Encoder
+const int m1PinB = 2;
+const int m2PinA = 19; // Right Encoder
+const int m2PinB = 18;
+
+// --- Physical Parameters ---
+const float wheel_radius = 0.07214; 
+const float wheel_base = 0.29;
+const float ticks_per_rev = 1952.0;
+const float dist_per_tick = (2.0 * PI * wheel_radius) / ticks_per_rev;
+
+// --- Volatile variables for ISRs ---
+volatile long m1Count = 0;
+volatile long m2Count = 0;
+
+// --- Odometry State ---
+float x = 0.0;
+float y = 0.0;
+float theta = 0.0;
+long lastM1 = 0;
+long lastM2 = 0;
+unsigned long lastTime = 0;
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(m1PinA, INPUT_PULLUP);
+  pinMode(m1PinB, INPUT_PULLUP);
+  pinMode(m2PinA, INPUT_PULLUP);
+  pinMode(m2PinB, INPUT_PULLUP);
+
+  attachInterrupt(digitalPinToInterrupt(m1PinA), handleM1, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(m2PinA), handleM2, CHANGE);
+}
+
+void loop() {
+  // 1. Check for Reset Command ('r')
+  if (Serial.available() > 0) {
+    char cmd = Serial.read();
+    if (cmd == 'r') {
+      x = 0.0; y = 0.0; theta = 0.0;
+      m1Count = 0; m2Count = 0;
+      lastM1 = 0; lastM2 = 0;
+    }
+  }
+
+  // 2. ONLY CALCULATE AND SEND AT 20Hz (Every 50ms)
+  unsigned long currentTime = millis();
+  if (currentTime - lastTime >= 50) {
+    
+    // Grab a snapshot of ticks and disable interrupts briefly for safety
+    noInterrupts();
+    long currentM1 = m1Count;
+    long currentM2 = m2Count;
+    interrupts();
+
+    // --- THE MISSING MATH ---
+    long dM1 = currentM1 - lastM1; // Change in left ticks
+    long dM2 = currentM2 - lastM2; // Change in right ticks
+
+    float dLeft = dM1 * dist_per_tick;   // Left distance in meters
+    float dRight = dM2 * dist_per_tick;  // Right distance in meters
+
+    float dCenter = (dLeft + dRight) / 2.0;
+    float dTheta = (dRight - dLeft) / wheel_base;
+
+    // Update the Pose (Standard Dead Reckoning)
+    x += dCenter * cos(theta);
+    y += dCenter * sin(theta);
+    theta += dTheta;
+
+    // Send the data to the Pi
+    Serial.print(x, 4); Serial.print(",");
+    Serial.print(y, 4); Serial.print(",");
+    Serial.println(theta, 4);
+
+    // Save current values for the next 50ms interval
+    lastM1 = currentM1;
+    lastM2 = currentM2;
+    lastTime = currentTime; 
+  }
+}
+
+// Encoder ISRs
+void handleM1() {
+  if (digitalRead(m1PinA) == digitalRead(m1PinB)) m1Count++;
+  else m1Count--;
+}
+
+void handleM2() {
+  if (digitalRead(m2PinA) == digitalRead(m2PinB)) m2Count++;
+  else m2Count--;
+}
